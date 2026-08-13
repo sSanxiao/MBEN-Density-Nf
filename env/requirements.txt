@@ -1,0 +1,9 @@
+# Frozen from bioinfo-lab /usr/bin/python3 (Python 3.7.10)
+# These are the versions that produced the thesis results. Do not bump.
+numpy==1.21.6
+pandas==1.3.5
+scipy==1.7.3
+scikit-learn==1.0.2
+matplotlib==3.5.3
+h5py==3.8.0
+pyarrow==12.0.1

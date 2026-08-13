@@ -1,0 +1,59 @@
+# Nextflow 运行产物（不入库）
+work/
+.nextflow/
+.nextflow.log*
+results/
+
+# 真实数据 / 中间产物（CI 用 make_fixture.py 就地生成，不入库）
+*.rds
+*.RData
+*.h5
+*.h5ad
+*.loom
+*.mtx
+*.parquet
+*.feather
+fixture/
+**/fixture/
+docker/c5_verify/
+
+# R
+.Rhistory
+.Rproj.user/
+*.Rproj
+renv/library/
+renv/staging/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# 图像产物默认不入库
+*.pdf
+*.png
+*.svg
+*.tiff
+*.jpg
+# 但 README 用的资产必须入库
+!docs/assets/**
+
+# 凭据
+.env
+*.pem
+*_token*
+
+# 日志
+*.log
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
