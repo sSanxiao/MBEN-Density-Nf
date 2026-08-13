@@ -1,0 +1,40 @@
+# Dockerfile.python — Python 3.7.10 environment for thesis pipeline (P1b/P1c/P2/P2a/P2b)
+#
+# Base: python:3.7-slim (Debian buster)
+# Buster apt repositories are archived → NO apt-get calls.
+# All 7 dependencies have cp37 manylinux wheels → pure pip install, no compilation needed.
+#
+# Python 3.7 is EOL; this is an intentional reproduction target pinned to the
+# environment that produced the thesis results. Do not bump.
+
+FROM python:3.7-slim
+
+LABEL description="Thesis pipeline Python environment (numpy/pandas/scipy/scikit-learn/matplotlib/h5py/pyarrow)"
+LABEL maintainer="Qilu Wang"
+LABEL python.version="3.7.10"
+
+# Copy only requirements to leverage Docker layer caching
+COPY env/requirements.txt /tmp/requirements.txt
+
+# Install 7 pinned packages (all have cp37 manylinux wheels)
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
+
+# Nextflow requires `ps` (procps) inside the container to collect task metrics.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify installed versions
+RUN python -c "\
+import numpy, pandas, scipy, sklearn, matplotlib, h5py, pyarrow; \
+print('numpy:', numpy.__version__); \
+print('pandas:', pandas.__version__); \
+print('scipy:', scipy.__version__); \
+print('scikit-learn:', sklearn.__version__); \
+print('matplotlib:', matplotlib.__version__); \
+print('h5py:', h5py.__version__); \
+print('pyarrow:', pyarrow.__version__); \
+"
+
+CMD ["python"]
