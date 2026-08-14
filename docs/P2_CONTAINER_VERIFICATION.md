@@ -191,6 +191,13 @@ fastDummies 1.7.5`。
 >    `1.6.4`，与 lockfile 原文 `1.6-4` 字符串比较必然失败。已修：改用
 >    `package_version` 对象比较（R 把 - 与 . 视为等价分隔符）。
 
+> **可复现性缺口：hdf5r 不在 renv.lock。** hdf5r 是 Seurat 的 Suggests
+> （R01_build_seurat.R 的 `Read10X_h5` 动态加载），`sessionInfo()` 不列出，
+> 服务器 `renv::snapshot()` 未捕获。其版本（1.3.12）由 RSPM 快照日期
+> （2026-08-01）间接固定，改快照日期即可能漂移。容器用独立
+> `install.packages("hdf5r", repos=快照)` 安装；H 门禁的 `extra = c(renv, hdf5r)`
+> 硬编码为可接受例外（二者确实不在 lockfile 中）。
+
 ### 5.2 判决实验（完成）—— R02 确定性
 
 在同一个容器内、用同一份 R01 输出，把 R02 连续跑两次（4 样本，见

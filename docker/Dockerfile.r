@@ -101,8 +101,11 @@ RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", \
     && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
 
 # Layer 3 -- plotting / data / remaining packages, then drop the cache.
-# (lockfile is KEPT at /opt/renv.lock: the H gate below parses it.)
-RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", prompt = FALSE, clean = TRUE)' \
+# clean=FALSE: the base image's own packages (littler/docopt/renv) are not
+# in renv.lock but must NOT be removed.  The restore starts from a clean
+# base anyway, so there is nothing stale to clean.  (lockfile is KEPT at
+# /opt/renv.lock: the H gate below parses it.)
+RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", prompt = FALSE, clean = FALSE)' \
     && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
 
 # -------------------------------------------------------
@@ -123,8 +126,10 @@ RUN R -e 'install.packages("hdf5r", repos = Sys.getenv("RENV_CONFIG_REPOS_OVERRI
 # 拆层 + 清缓存不得改变任何包版本。期望版本从 /opt/renv.lock 解析
 # （单一事实来源）；比较用 package_version 对象（R 把 - 与 . 视为等价
 # 分隔符，as.character 会把 1.6-4 归一化为 1.6.4，字符串比较必然误判）。
-# hdf5r 与 renv 不在 lockfile（hdf5r 是 renv.lock 缺口、renv 是构建工具），
-# 故单独硬编码。
+# hdf5r 与 renv 不在 lockfile，故单独硬编码（非遗漏）：
+#   - hdf5r 是 Seurat 的 Suggests，sessionInfo() 不列出，renv::snapshot
+#     未捕获；其版本由 RSPM 快照日期（2026-08-01）决定而非 lockfile。
+#   - renv 是构建工具，renv 从不把自己写进 lockfile。
 RUN R -e '\
 lock <- jsonlite::fromJSON("/opt/renv.lock"); \
 lock_pkgs <- c("Seurat", "SeuratObject", "Matrix", "sctransform", "fastDummies", \

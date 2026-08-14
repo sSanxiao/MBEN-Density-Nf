@@ -17,6 +17,13 @@ Python 3.7 is EOL; it is pinned deliberately as the reproduction target.
   is checked by tolerance (|Δρ| < 1e-6, identical gene sets), not byte identity.
   Same-machine before/after equivalence remains byte-identical.
 - R version is pinned by the base image tag, not by renv.lock.
+- hdf5r is NOT in renv.lock: it is Seurat's Suggests (dynamically loaded by
+  Seurat::Read10X_h5 in R01_build_seurat.R), so sessionInfo() does not list
+  it and renv::snapshot() did not capture it.  Its version (1.3.12) is fixed
+  indirectly by the RSPM snapshot date (2026-08-01), NOT by the lockfile --
+  changing the snapshot date can drift it.  The container pins it explicitly
+  via install.packages() from the snapshot; the H gate hardcodes 1.3.12 as a
+  known non-lockfile add-on.
 
 - setup/install_deps.R is intentionally not migrated: it pins an incorrect
   ggplot2 version (4.0.2; server measured 3.5.2). For non-container installs,
