@@ -108,6 +108,18 @@ WSL symlink（Nextflow 读 `/tmp/...`）+ Windows junction（Windows 解释器�
 把 `fixture_container` 桥接到 `fixture_host`。换机时只需改 `fixture_host`，
 但 `fixture_container` 与 registry 绑定，换机需连同 registry 一起重建。
 
+### 6.1 Linux/CI 上 fixture_host == fixture_container（恒等映射，非 Windows 设计缺陷）
+
+两段解耦（`fixture_host` / `fixture_container`）是为本机 WSL→Windows 跨文件系统而生：
+host 用 `/mnt/f/...`、container 用 `/tmp/...`。但在 **Linux（CI）上这两者本就是同一路径**——
+D3 的 pipeline job 用 `tools/make_fixture.py --outdir <绝对路径>` 就地生成 fixture（不提交进
+仓库），于是 `fixture_host == fixture_container == <绝对路径>`，docker 挂载成为
+`-v <路径>:<路径>` 的恒等映射。这证明路径耦合是本机 Windows/WSL 环境的产物，而非设计缺陷：
+同一份设计在原生 Linux 上退化为单一路径。
+
+> 注：恒等挂载在 CI 上的实际行为（写权限、挂载路径许可等）尚未实测，D3 跑通后再补
+> 「CI 实测确认」的结论，不在此时以确定语气写入。
+
 ## 7. 子集必须做在 registry 层（Q4(b) fail-fast 的约束）
 
 P2A 脚本（不可改）从「完整 registry」反推 dataset 样本列表，并校验 manifest 完整性

@@ -31,3 +31,80 @@ jobs:
         env:
           SKIP_SEURAT: "1"
         run: python tools/test_infrastructure.py
+
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install fixture deps
+        run: pip install numpy pandas scipy h5py
+
+      - name: Generate fixture (in-place, not committed)
+        run: python tools/make_fixture.py --outdir /tmp/p1_fixture --seed 20260811
+
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          nextflow -version
+
+      - name: Pull R image (timed)
+        run: |
+          echo "=== R image pull (2.36 GB) ==="
+          time docker pull ghcr.io/ssanxiao/mben-density-nf/thesis-r:4.2.0-seurat-5.2.1-20260814
+
+      - name: Pull Python image (timed)
+        run: |
+          echo "=== Python image pull ==="
+          time docker pull ghcr.io/ssanxiao/mben-density-nf/thesis-python:3.7.10-20260814
+
+      - name: Run Nextflow pipeline (test + docker)
+        run: |
+          cat > ci.config <<'EOF'
+          params.fixture_host = '/tmp/p1_fixture'
+          params.fixture_container = '/tmp/p1_fixture'
+          params.registry = '/tmp/p1_fixture/sample_registry.json'
+          docker.runOptions = "-v /tmp/p1_fixture:/tmp/p1_fixture"
+          EOF
+          time nextflow run main.nf -profile test,docker -c ci.config \
+            --outdir results \
+            -with-trace trace.tsv \
+            -with-report report.html \
+            -with-timeline timeline.html
+
+      - name: Upload trace/report/timeline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextflow-trace-report
+          path: |
+            trace.tsv
+            report.html
+            timeline.html
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload nextflow log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextflow-log
+          path: .nextflow.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload failed task stderr
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-task-err
+          path: work/**/.command.err
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1325,6 +1325,7 @@ def t18_q4_manifest_validation(tmp):
 
 def main():
     tmp = tempfile.mkdtemp(prefix="fp_test_")
+    skipped = []
     try:
         t1_volatile_exclusion(tmp)
         t2_nonvolatile_sensitivity(tmp)
@@ -1336,6 +1337,8 @@ def main():
         t8_partial_na_and_precision(tmp)
         if not SKIP_SEURAT:
             t9_rds_fingerprint_stable(tmp)
+        else:
+            skipped.append("T9  rds fingerprint (Seurat)")
         t10_h5_fingerprint_stable(tmp)
         t11_fixture_dir_type_coverage(tmp)
         t12_merge_k_selection_fingerprint(tmp)
@@ -1346,12 +1349,23 @@ def main():
             t16_r04_to_r05_r06_seam(tmp)
             t17_r04_r06_to_r07_manifest(tmp)
             t18_q4_manifest_validation(tmp)
+        else:
+            skipped.extend([
+                "T14 P2b→R01 seam (Seurat)",
+                "T15 R01→R04 chain (Seurat)",
+                "T16 R04→R05/R06 seam (Seurat)",
+                "T17 R04/R06→R07 manifest (Seurat)",
+                "T18 Q4 manifest validation (Seurat)",
+            ])
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
     n_fail = sum(1 for _, ok, _ in RESULTS if not ok)
+    n_pass = len(RESULTS) - n_fail
+    for name in skipped:
+        print(f"[SKIP] {name}  (SKIP_SEURAT=1)")
     print("\n" + "=" * 60)
-    print(f"{len(RESULTS) - n_fail}/{len(RESULTS)} tests passed")
+    print(f"{n_pass} passed, {n_fail} failed, {len(skipped)} SKIPPED")
     if n_fail:
         sys.exit(1)
 
