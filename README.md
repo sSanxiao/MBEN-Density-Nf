@@ -32,5 +32,5 @@ tooling are in place; documentation is being written.
 
 
 
-Original thesis code archive: \[Thesis\_project](https://github.com/sSanxiao/Thesis\_project)
+Original thesis code archive: https://github.com/sSanxiao/Thesis_project
 
