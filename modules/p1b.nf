@@ -13,7 +13,7 @@
 
 process P1B {
     tag "$sample"
-    container 'thesis-python:3.7.10'
+    container params.python_image
 
     publishDir(
         path: { "${params.outdir}/P1_Results/${sample}" },

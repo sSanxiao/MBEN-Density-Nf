@@ -86,6 +86,7 @@ import make_fixture as mkfx  # noqa: E402
 
 RSCRIPT = os.environ.get("RSCRIPT", "Rscript")
 FP_R = os.path.join(HERE, "fingerprint.R")
+SKIP_SEURAT = os.environ.get("SKIP_SEURAT", "") == "1"
 
 RESULTS = []
 
@@ -1333,16 +1334,18 @@ def main():
         t6_schema_drift_refusal(tmp)
         t7_allna_type_agreement(tmp)
         t8_partial_na_and_precision(tmp)
-        t9_rds_fingerprint_stable(tmp)
+        if not SKIP_SEURAT:
+            t9_rds_fingerprint_stable(tmp)
         t10_h5_fingerprint_stable(tmp)
         t11_fixture_dir_type_coverage(tmp)
         t12_merge_k_selection_fingerprint(tmp)
         t13_manifest_order_invariance(tmp)
-        t14_p2b_to_r01_seam(tmp)
-        t15_r01_to_r04_chain(tmp)
-        t16_r04_to_r05_r06_seam(tmp)
-        t17_r04_r06_to_r07_manifest(tmp)
-        t18_q4_manifest_validation(tmp)
+        if not SKIP_SEURAT:
+            t14_p2b_to_r01_seam(tmp)
+            t15_r01_to_r04_chain(tmp)
+            t16_r04_to_r05_r06_seam(tmp)
+            t17_r04_r06_to_r07_manifest(tmp)
+            t18_q4_manifest_validation(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

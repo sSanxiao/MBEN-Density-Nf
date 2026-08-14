@@ -6,7 +6,7 @@
 // ============================================================
 
 process MERGE_K_SELECTION {
-    container 'thesis-python:3.7.10'
+    container params.python_image
 
     publishDir(
         path: { "${params.outdir}" },

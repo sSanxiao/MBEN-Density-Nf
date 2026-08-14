@@ -73,8 +73,29 @@ RUN echo "RSPM snapshot: 2026-08-01" > /opt/build_info.txt \
 # Copy renv.lock (layer caching: only rebuild when lock changes)
 COPY env/renv.lock /tmp/renv.lock
 
-# Restore all 130 packages from the lock file
+# Restore the 145 packages from the lock file in three balanced layers so
+# no single layer is oversized (proxy-friendly upload + CI-parallel pull).
+# renv keeps a duplicate copy of every package in its cache
+# (/root/.cache/R/renv); that cache is removed in the SAME RUN that
+# created it -- a cross-layer rm would leave the bytes in the earlier
+# layer and NOT shrink the image.
+#
+# Layer 1 -- compiled foundation (slow-to-build C/C++ chain).
+RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", \
+        packages = c("Rcpp", "RcppArmadillo", "RcppEigen", "RcppAnnoy", "RcppHNSW", \
+                     "Matrix", "igraph", "stringi", "RSpectra", "dqrng"), \
+        prompt = FALSE, clean = FALSE)' \
+    && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
+
+# Layer 2 -- Seurat stack + its remaining dependencies.
+RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", \
+        packages = c("Seurat", "SeuratObject", "sctransform", "fastDummies"), \
+        prompt = FALSE, clean = FALSE)' \
+    && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
+
+# Layer 3 -- plotting / data / remaining packages, then drop cache + lock.
 RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", prompt = FALSE, clean = TRUE)' \
+    && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/* \
     && rm /tmp/renv.lock
 
 # -------------------------------------------------------
@@ -86,14 +107,28 @@ RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", prompt = FALSE, clean = TRU
 # is required by R01_build_seurat.R.  Install from the same fixed RSPM
 # snapshot to keep the environment reproducible.
 # -------------------------------------------------------
-RUN R -e 'install.packages("hdf5r", repos = Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE"))'
+RUN R -e 'install.packages("hdf5r", repos = Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE"))' \
+    && rm -rf /tmp/*
 
 # -------------------------------------------------------
-# Verify key package versions (H criterion)
+# Verify key package versions (H criterion -- 10 packages)
 # -------------------------------------------------------
+# 拆层 + 清缓存不得改变任何包版本。以下 10 个关键包逐一核对，
+# 任一版本不符则 quit(status=1) 使 build 失败（§10 第 1 条：
+# 优化必须证明没改变结果）。
 RUN R -e '\
-cat("=== sessionInfo ===\n"); \
-sessionInfo() \
+expected <- c(Seurat="5.2.1", SeuratObject="5.0.2", Matrix="1.6-4", \
+              sctransform="0.4.1", fastDummies="1.7.5", hdf5r="1.3.12", \
+              data.table="1.17.0", jsonlite="1.9.1", ggplot2="3.5.2", renv="1.2.4"); \
+cat("=== H criterion: 10 key package versions ===\n"); \
+fail <- FALSE; \
+for (p in names(expected)) { \
+  v <- tryCatch(as.character(packageVersion(p)), error=function(e) "ABSENT"); \
+  ok <- v == expected[[p]]; \
+  if (!ok) fail <- TRUE; \
+  cat(sprintf("%-14s %-10s %s\n", p, v, if (ok) "OK" else paste0("EXPECTED ", expected[[p]]))); \
+}; \
+if (fail) quit(status = 1) \
 '
 
 CMD ["R"]

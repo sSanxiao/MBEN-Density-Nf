@@ -1,0 +1,51 @@
+name: Build and push images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+          sudo apt-get clean
+          df -h /
+
+      - name: Compute tag date
+        id: date
+        run: echo "date=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push R image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.r
+          push: true
+          tags: |
+            ghcr.io/ssanxiao/mben-density-nf/thesis-r:4.2.0-seurat-5.2.1-${{ steps.date.outputs.date }}
+            ghcr.io/ssanxiao/mben-density-nf/thesis-r:latest
+
+      - name: Build and push Python image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.python
+          push: true
+          tags: |
+            ghcr.io/ssanxiao/mben-density-nf/thesis-python:3.7.10-${{ steps.date.outputs.date }}
+            ghcr.io/ssanxiao/mben-density-nf/thesis-python:latest

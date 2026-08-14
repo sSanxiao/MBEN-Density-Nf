@@ -3,6 +3,8 @@
 # Wrapper for running verify_equivalence.sh under Git Bash on Windows.
 # Sets HOME to Windows home so R finds user config.
 # R library path is handled by .Rprofile in the project root.
+# 注意：本机 Windows/WSL 桥接脚本，非跨机可移植。
+# 下方 HOME/RSCRIPT/PYTHON/DATA_DIR/RESULTS_DIR 均为本机绝对路径，换机需改写。
 
 export HOME='/c/Users/13379'
 export RSCRIPT='/d/R-4.5.2/bin/Rscript.exe'

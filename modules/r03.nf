@@ -7,7 +7,7 @@
 
 process R03 {
     tag "$sample"
-    container 'thesis-r:4.2.0'
+    container params.r_image
 
     publishDir(
         path: { "${params.outdir}/R3_Results/${sample}" },
