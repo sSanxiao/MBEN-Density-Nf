@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf
+*.h5 binary
+*.parquet binary
+*.rds binary

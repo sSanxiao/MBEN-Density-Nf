@@ -3,6 +3,17 @@ work/
 .nextflow/
 .nextflow.log*
 results/
+# Nextflow 可执行文件与运行报告（含本机路径，不入库）
+nextflow
+trace_*.txt
+report_*.html
+timeline_*.html
+dag_*.dot
+*_verify_out/
+tmp_verify_out/
+
+# 临时诊断脚本
+_*.sh
 
 # 真实数据 / 中间产物（CI 用 make_fixture.py 就地生成，不入库）
 *.rds
