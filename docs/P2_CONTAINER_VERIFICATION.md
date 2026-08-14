@@ -156,26 +156,40 @@ R03 的 Spearman 是对 **SCT 残差**与密度做秩相关；密度秩稳定（
 
 ## 5. C6 结果
 
-### 5.1 renv pin（完成）
+### 5.1 renv pin（已更正：原 pin 从未生效）
 
-`Dockerfile.r:60` 的 renv 源改为**显式 pin 版本**：
+`Dockerfile.r` 的 renv 源原想**显式 pin 到 1.2.4**，但第一版写法无效：
 
 ```dockerfile
+# 无效：install.packages() 没有 version 形参，实参被 ... 吞掉
 RUN R -e 'install.packages("renv", version = "1.2.4", repos = "https://cloud.r-project.org")'
 ```
 
 关键发现：RSPM 快照 2026-08-01 提供的是 renv **1.2.3**，它无法解析 Seurat 的
 `fastDummies` 依赖（`dependency 'fastDummies' is not available`）；C3 实际用的是
-滚动 CRAN 上的 renv **1.2.4**，能正确解析。因此 pin 到 1.2.4（CRAN archive 保留
-旧版，pin 确定，不受滚动源影响）。
+滚动 CRAN 上的 renv **1.2.4**，能正确解析。当初误以为 `version = "1.2.4"` 是 pin，
+**实际从未生效**——只是该快照恰好提供 1.2.4，换个快照日期就会漂移。已更正为真正的 pin：
+
+```dockerfile
+RUN R -e 'install.packages("remotes", repos = "https://cloud.r-project.org")' \
+ && R -e 'remotes::install_version("renv", version = "1.2.4", repos = "https://cloud.r-project.org")' \
+ && R -e 'stopifnot(packageVersion("renv") == package_version("1.2.4"))'
+```
+
+末行断言让 pin 失效时在当层立即失败，而非拖到最终门禁。此问题由 H 门禁间接暴露
+（虽本次实际被 Matrix 的格式问题拦下）。
 
 重 build 成功，H 项关键包版本不变：
 `renv 1.2.4 / Seurat 5.2.1 / SeuratObject 5.0.2 / Matrix 1.6-4 / sctransform 0.4.1 /
 fastDummies 1.7.5`。
 
-> 拆层重构（renv::restore 拆 3 层）引入了跨层文件生命周期问题：`/tmp/renv.lock`
-> 被 Layer 1 的 `rm -rf /tmp/*` 删除，Layer 2 无法打开——语法/逻辑都对，只有 CI
-> 真跑才暴露。已修：lockfile 移到 `/opt/renv.lock`（跨层存活文件不得放在被清理的路径下）。
+> 「为什么门禁必须在 CI 里真跑」的两个实例（代码看着完全正确、只有真跑才暴露）：
+>
+> 1. **文件生命周期**：拆层后 `/tmp/renv.lock` 被 Layer 1 的 `rm -rf /tmp/*` 删除，
+>    Layer 2 无法打开。已修：lockfile 移到 `/opt/renv.lock`。
+> 2. **类型语义**：`as.character(packageVersion("Matrix"))` 把 `1.6-4` 归一化为
+>    `1.6.4`，与 lockfile 原文 `1.6-4` 字符串比较必然失败。已修：改用
+>    `package_version` 对象比较（R 把 - 与 . 视为等价分隔符）。
 
 ### 5.2 判决实验（完成）—— R02 确定性
 

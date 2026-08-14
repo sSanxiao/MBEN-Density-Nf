@@ -60,9 +60,13 @@ ENV RENV_CONFIG_REPOS_OVERRIDE=https://packagemanager.posit.co/cran/__linux__/fo
 # restore() behavior: the RSPM snapshot 2026-08-01 ships renv 1.2.3, which
 # fails to resolve Seurat's fastDummies dependency ("dependency
 # 'fastDummies' is not available"); renv 1.2.4 (the version the C3 build
-# actually used) resolves it correctly.  Pin 1.2.4 via CRAN — old versions
-# stay in the archive, so the pin is deterministic despite the rolling URL.
-RUN R -e 'install.packages("renv", version = "1.2.4", repos = "https://cloud.r-project.org")'
+# actually used) resolves it correctly.
+# install.packages() has no `version` argument (it would be silently
+# swallowed by `...`), so pin via remotes::install_version + an in-layer
+# assertion: a failed pin must fail HERE, not at the final H gate.
+RUN R -e 'install.packages("remotes", repos = "https://cloud.r-project.org")' \
+ && R -e 'remotes::install_version("renv", version = "1.2.4", repos = "https://cloud.r-project.org")' \
+ && R -e 'stopifnot(packageVersion("renv") == package_version("1.2.4"))'
 
 # Record build provenance
 RUN echo "RSPM snapshot: 2026-08-01" > /opt/build_info.txt \
@@ -96,10 +100,10 @@ RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", \
         prompt = FALSE, clean = FALSE)' \
     && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
 
-# Layer 3 -- plotting / data / remaining packages, then drop cache + lock.
+# Layer 3 -- plotting / data / remaining packages, then drop the cache.
+# (lockfile is KEPT at /opt/renv.lock: the H gate below parses it.)
 RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", prompt = FALSE, clean = TRUE)' \
-    && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/* \
-    && rm /opt/renv.lock
+    && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
 
 # -------------------------------------------------------
 # hdf5r — explicit add-on (renv.lock gap)
@@ -114,22 +118,27 @@ RUN R -e 'install.packages("hdf5r", repos = Sys.getenv("RENV_CONFIG_REPOS_OVERRI
     && rm -rf /tmp/*
 
 # -------------------------------------------------------
-# Verify key package versions (H criterion -- 10 packages)
+# Verify key package versions (H criterion)
 # -------------------------------------------------------
-# 拆层 + 清缓存不得改变任何包版本。以下 10 个关键包逐一核对，
-# 任一版本不符则 quit(status=1) 使 build 失败（§10 第 1 条：
-# 优化必须证明没改变结果）。
+# 拆层 + 清缓存不得改变任何包版本。期望版本从 /opt/renv.lock 解析
+# （单一事实来源）；比较用 package_version 对象（R 把 - 与 . 视为等价
+# 分隔符，as.character 会把 1.6-4 归一化为 1.6.4，字符串比较必然误判）。
+# hdf5r 与 renv 不在 lockfile（hdf5r 是 renv.lock 缺口、renv 是构建工具），
+# 故单独硬编码。
 RUN R -e '\
-expected <- c(Seurat="5.2.1", SeuratObject="5.0.2", Matrix="1.6-4", \
-              sctransform="0.4.1", fastDummies="1.7.5", hdf5r="1.3.12", \
-              data.table="1.17.0", jsonlite="1.9.1", ggplot2="3.5.2", renv="1.2.4"); \
-cat("=== H criterion: 10 key package versions ===\n"); \
+lock <- jsonlite::fromJSON("/opt/renv.lock"); \
+lock_pkgs <- c("Seurat", "SeuratObject", "Matrix", "sctransform", "fastDummies", \
+               "data.table", "jsonlite", "ggplot2"); \
+extra <- c(renv = "1.2.4", hdf5r = "1.3.12"); \
+cat("=== H criterion: key package versions ===\n"); \
 fail <- FALSE; \
-for (p in names(expected)) { \
-  v <- tryCatch(as.character(packageVersion(p)), error=function(e) "ABSENT"); \
-  ok <- v == expected[[p]]; \
+for (p in c(lock_pkgs, names(extra))) { \
+  expected <- if (p %in% lock_pkgs) lock$Packages[[p]]$Version else extra[[p]]; \
+  v <- tryCatch(packageVersion(p), error = function(e) NULL); \
+  ok <- !is.null(v) && v == package_version(expected); \
   if (!ok) fail <- TRUE; \
-  cat(sprintf("%-14s %-10s %s\n", p, v, if (ok) "OK" else paste0("EXPECTED ", expected[[p]]))); \
+  cat(sprintf("%-14s %-10s %s\n", p, if (is.null(v)) "ABSENT" else as.character(v), \
+              if (ok) "OK" else paste0("EXPECTED ", expected))); \
 }; \
 if (fail) quit(status = 1) \
 '
