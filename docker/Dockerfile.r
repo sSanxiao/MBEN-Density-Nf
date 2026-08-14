@@ -70,8 +70,11 @@ RUN echo "RSPM snapshot: 2026-08-01" > /opt/build_info.txt \
     && echo "Base image: rocker/r-ver:4.2.0" >> /opt/build_info.txt \
     && echo "Platform: Ubuntu 20.04 (focal)" >> /opt/build_info.txt
 
-# Copy renv.lock (layer caching: only rebuild when lock changes)
-COPY env/renv.lock /tmp/renv.lock
+# Copy renv.lock to /opt (NOT /tmp): the lockfile must survive across the
+# three restore layers, but each layer runs `rm -rf /tmp/*` to drop the
+# renv cache + temp files.  A lockfile in /tmp would be deleted by Layer 1
+# and Layers 2/3 could not open it (bug caught by CI on first real run).
+COPY env/renv.lock /opt/renv.lock
 
 # Restore the 145 packages from the lock file in three balanced layers so
 # no single layer is oversized (proxy-friendly upload + CI-parallel pull).
@@ -81,22 +84,22 @@ COPY env/renv.lock /tmp/renv.lock
 # layer and NOT shrink the image.
 #
 # Layer 1 -- compiled foundation (slow-to-build C/C++ chain).
-RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", \
+RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", \
         packages = c("Rcpp", "RcppArmadillo", "RcppEigen", "RcppAnnoy", "RcppHNSW", \
                      "Matrix", "igraph", "stringi", "RSpectra", "dqrng"), \
         prompt = FALSE, clean = FALSE)' \
     && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
 
 # Layer 2 -- Seurat stack + its remaining dependencies.
-RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", \
+RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", \
         packages = c("Seurat", "SeuratObject", "sctransform", "fastDummies"), \
         prompt = FALSE, clean = FALSE)' \
     && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/*
 
 # Layer 3 -- plotting / data / remaining packages, then drop cache + lock.
-RUN R -e 'renv::restore(lockfile = "/tmp/renv.lock", prompt = FALSE, clean = TRUE)' \
+RUN R -e 'renv::restore(lockfile = "/opt/renv.lock", prompt = FALSE, clean = TRUE)' \
     && rm -rf /root/.cache/R/renv /tmp/* /var/lib/apt/lists/* \
-    && rm /tmp/renv.lock
+    && rm /opt/renv.lock
 
 # -------------------------------------------------------
 # hdf5r — explicit add-on (renv.lock gap)

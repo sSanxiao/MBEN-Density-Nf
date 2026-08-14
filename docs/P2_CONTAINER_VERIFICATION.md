@@ -173,6 +173,10 @@ RUN R -e 'install.packages("renv", version = "1.2.4", repos = "https://cloud.r-p
 `renv 1.2.4 / Seurat 5.2.1 / SeuratObject 5.0.2 / Matrix 1.6-4 / sctransform 0.4.1 /
 fastDummies 1.7.5`。
 
+> 拆层重构（renv::restore 拆 3 层）引入了跨层文件生命周期问题：`/tmp/renv.lock`
+> 被 Layer 1 的 `rm -rf /tmp/*` 删除，Layer 2 无法打开——语法/逻辑都对，只有 CI
+> 真跑才暴露。已修：lockfile 移到 `/opt/renv.lock`（跨层存活文件不得放在被清理的路径下）。
+
 ### 5.2 判决实验（完成）—— R02 确定性
 
 在同一个容器内、用同一份 R01 输出，把 R02 连续跑两次（4 样本，见
