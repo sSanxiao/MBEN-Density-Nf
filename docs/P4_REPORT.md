@@ -43,6 +43,11 @@
 上如 scipy 1.7.3 无 wheel）。目标环境的精确版本由容器镜像与 D3 的 pipeline job 覆盖，
 不由 unit job 复现。
 
+**D3 首轮 CI 捕获（本机不可见）**：`sed 's/[<>=!~].*//'` 只剥版本号、不滤注释，
+`env/requirements.txt` 开头两行 `#` 注释被原样喂给 pip（`Invalid requirement: '#'`）；
+已改为 `grep -vE '^\s*(#|$)' | sed ...` 先滤注释与空行。与 T4 常量漂移同族——
+「代码看着对、只有 CI 真跑才暴露」。
+
 ### W 项：耗时（CI 实跑后回填）
 
 | 项 | 耗时 | 备注 |

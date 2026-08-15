@@ -21,7 +21,7 @@ jobs:
       # unit job 只验证逻辑正确性，不复现目标环境版本（目标版本由容器 + D3 pipeline job 覆盖）。
       - name: Install Python deps
         run: |
-          pip install $(sed 's/[<>=!~].*//' env/requirements.txt)
+          pip install $(grep -vE '^\s*(#|$)' env/requirements.txt | sed 's/[<>=!~].*//')
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
@@ -50,7 +50,7 @@ jobs:
       # 同上：make_fixture.py 需 numpy/pandas/scipy/h5py/pyarrow（df.to_parquet）。
       - name: Install fixture deps
         run: |
-          pip install $(sed 's/[<>=!~].*//' env/requirements.txt)
+          pip install $(grep -vE '^\s*(#|$)' env/requirements.txt | sed 's/[<>=!~].*//')
 
       - name: Generate fixture (in-place, not committed)
         run: python tools/make_fixture.py --outdir /tmp/p1_fixture --seed 20260811
