@@ -70,7 +70,7 @@ action 内部使用的 Node 版本），与本项目配置无关，不需处理�
 
 ## D4：X 项反向验证（CI 该红时变红）
 
-**结论：变红成立；但「仅凭 artifact 可定位根因」不成立（如实记录，非失败）。**
+**结论：CI 会变红（已证）+ artifact 不足以独立定位（已证）；artifact 可定位性待修复后重验。**
 
 - **缺陷**：`modules/r03.nf` 输出文件名 `density_gene_correlations.csv` →
   `density_gene_correlation.csv`（少一个 s）。
@@ -96,5 +96,31 @@ trace.tsv + report.html + timeline.html）。另外两个 artifact **缺失**：
 （`.nextflow.log` / Nextflow stderr），artifact 未包含。本次根因定位实际依赖 job 日志，
 artifact 提供的是 trace/report 层面的辅助信息。
 
-> 修复方向（P5 或后续）：给 `nextflow-log` / `failed-task-err` 两个 upload 步骤加
-> `include-hidden-files: true`，并考虑同时上传 `.command.out`。
+> 修复方向（P5 待办，不笼统写「加 include-hidden-files」）：
+> - `.nextflow.log`：`include-hidden-files: true` + `if-no-files-found: error`
+>   ——该文件每次 run 后必然存在，匹配不到即配置有误，应当失败。
+> - 失败任务的 `.command.err` / `.command.out`：`include-hidden-files: true` +
+>   `if-no-files-found: warn` ——成功的 run 没有失败任务，用 error 会误伤绿跑。
+> 原则与全项目一致：不让「什么都没找到」冒充成功。
+> 修复后需重做一次 X 项，证明 artifact 真的可定位（否则修复本身未验证）。
+
+## P4 验收 S–X 六项总结
+
+| 项 | 内容 | 状态 |
+|---|---|---|
+| S | 镜像推送 GHCR | 通过（两镜像推送 + CI pull 到；Python pull 由 D3 覆盖） |
+| T | CI 跑通 pipeline | 通过（27 任务全完成） |
+| U | CI 跑通 unit | 通过（CI 内 12 passed + 0 failed + 6 SKIP；6 个 Seurat 依赖测试由 D3 容器覆盖） |
+| V | badge 绿且可点开 | 待绿跑（badge 已加，回退 push 后转绿即通过） |
+| W | 运行时长记录 | 通过（耗时表 + tiny fixture 关闭） |
+| X | 失败可见性（反向验证） | 部分（变红已证；artifact 独立定位未成立，待修复后重验） |
+
+## 五条「CI 捕获、本机不可见」真实缺陷（与 X 项人为对照实验分开）
+
+X 项是人为引入的对照；以下五条是**真实**缺陷，每条都是「代码看着对、只有 CI 真跑才暴露」：
+
+1. **文件生命周期**：拆层后 `/tmp/renv.lock` 被 Layer 1 的 `rm -rf /tmp/*` 删除。
+2. **API 语义**：`install.packages(version=)` 无声吞参，renv pin 从未生效。
+3. **类型语义**：`as.character(packageVersion("Matrix"))` 字符串比较 vs `package_version` 对象比较。
+4. **跨语言常量漂移**：`qc_schema.EXCLUDED_FILES` 加了 `meta_Fixture_*.txt`，`fingerprint.R` 的 `EXCLUDED_FILES_R` 未同步。
+5. **管道边缘条件**：`sed` 只剥版本号不滤注释，`#` 注释被喂给 pip。
