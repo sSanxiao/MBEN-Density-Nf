@@ -183,13 +183,19 @@ RUN R -e 'install.packages("remotes", repos = "https://cloud.r-project.org")' \
 `renv 1.2.4 / Seurat 5.2.1 / SeuratObject 5.0.2 / Matrix 1.6-4 / sctransform 0.4.1 /
 fastDummies 1.7.5`。
 
-> 「为什么门禁必须在 CI 里真跑」的两个实例（代码看着完全正确、只有真跑才暴露）：
+> 「为什么门禁必须在 CI 里真跑」的三个实例（代码看着完全正确、只有真跑才暴露）：
 >
 > 1. **文件生命周期**：拆层后 `/tmp/renv.lock` 被 Layer 1 的 `rm -rf /tmp/*` 删除，
 >    Layer 2 无法打开。已修：lockfile 移到 `/opt/renv.lock`。
 > 2. **类型语义**：`as.character(packageVersion("Matrix"))` 把 `1.6-4` 归一化为
 >    `1.6.4`，与 lockfile 原文 `1.6-4` 字符串比较必然失败。已修：改用
 >    `package_version` 对象比较（R 把 - 与 . 视为等价分隔符）。
+> 3. **跨语言常量镜像漂移**：C5 把 `meta_Fixture_Human.txt` / `meta_Fixture_Mouse.txt`
+>    加进 `qc_schema.EXCLUDED_FILES`，但 `fingerprint.R` 的 `EXCLUDED_FILES_R` 未同步。
+>    T4（constants-drift lock）本机从未触发——C5 的验证入口是 `compare_tolerance.py`
+>    （容器 vs 服务器容差比较），不含 T4 的常量漂移检查；T4 所在的自测套件
+>    （`test_infrastructure.py`）在 C5 改 `qc_schema.py` 后没有重跑。CI 首次跑 T4 即
+>    抓出 `drift in section: EXCLUDED_FILES`。
 
 > **可复现性缺口：hdf5r 不在 renv.lock。** hdf5r 是 Seurat 的 Suggests
 > （R01_build_seurat.R 的 `Read10X_h5` 动态加载），`sessionInfo()` 不列出，

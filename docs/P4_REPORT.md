@@ -38,6 +38,11 @@
 - fixture 就地生成在 `/tmp/p1_fixture`，不提交进仓库；`fixture_host == fixture_container`
   为 Linux 恒等映射（详见 NEXTFLOW_NOTES.md §6.1）。
 
+**unit job 与 pipeline job 的分工**：unit job 验证逻辑正确性（T1-T13），其 Python 依赖
+从 `env/requirements.txt` 取包名但去版本 pin 安装（pin 为 Python 3.7 容器准备，3.10 runner
+上如 scipy 1.7.3 无 wheel）。目标环境的精确版本由容器镜像与 D3 的 pipeline job 覆盖，
+不由 unit job 复现。
+
 ### W 项：耗时（CI 实跑后回填）
 
 | 项 | 耗时 | 备注 |

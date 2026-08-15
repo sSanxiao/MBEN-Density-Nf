@@ -200,7 +200,12 @@ KEY_COLUMNS_R <- list(
   "r6_summary.csv" = "sample_name"
 )
 
-EXCLUDED_FILES_R <- c("TIER_DECISION_REPORT.txt", "TIER_DECISION_REPORT.json")
+EXCLUDED_FILES_R <- c(
+  "TIER_DECISION_REPORT.txt",
+  "TIER_DECISION_REPORT.json",
+  "meta_Fixture_Human.txt",
+  "meta_Fixture_Mouse.txt"
+)
 EXCLUDED_EXTENSIONS_R <- c(".png")
 
 DENSITY_COLUMNS_R <- c(

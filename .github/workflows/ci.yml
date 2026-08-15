@@ -16,8 +16,12 @@ jobs:
         with:
           python-version: '3.10'
 
+      # Python 依赖：包名取自 env/requirements.txt（单一事实来源），去版本 pin 后安装。
+      # pin（numpy 1.21.6 / scipy 1.7.3 等）为 Python 3.7 容器准备，3.10 runner 上可能无 wheel。
+      # unit job 只验证逻辑正确性，不复现目标环境版本（目标版本由容器 + D3 pipeline job 覆盖）。
       - name: Install Python deps
-        run: pip install numpy pandas scipy h5py
+        run: |
+          pip install $(sed 's/[<>=!~].*//' env/requirements.txt)
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
@@ -43,8 +47,10 @@ jobs:
         with:
           python-version: '3.10'
 
+      # 同上：make_fixture.py 需 numpy/pandas/scipy/h5py/pyarrow（df.to_parquet）。
       - name: Install fixture deps
-        run: pip install numpy pandas scipy h5py
+        run: |
+          pip install $(sed 's/[<>=!~].*//' env/requirements.txt)
 
       - name: Generate fixture (in-place, not committed)
         run: python tools/make_fixture.py --outdir /tmp/p1_fixture --seed 20260811
