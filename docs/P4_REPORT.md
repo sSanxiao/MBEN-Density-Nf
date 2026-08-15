@@ -67,3 +67,34 @@
 
 **Node.js 20 deprecation 警告**：GitHub Actions 平台层面的（actions/checkout@v4 等
 action 内部使用的 Node 版本），与本项目配置无关，不需处理（非待办）。
+
+## D4：X 项反向验证（CI 该红时变红）
+
+**结论：变红成立；但「仅凭 artifact 可定位根因」不成立（如实记录，非失败）。**
+
+- **缺陷**：`modules/r03.nf` 输出文件名 `density_gene_correlations.csv` →
+  `density_gene_correlation.csv`（少一个 s）。
+- **变红**：Nextflow 报 `Missing output file(s) 'density_gene_correlation.csv'`，
+  `Command exit status: 0` —— 脚本本身正常退出，是 Nextflow 输出契约捕获的沉默型缺陷。
+- **红色 run**：https://github.com/sSanxiao/mben-density-nf/actions/runs/31868137696/job/94972320929
+- **回退后转绿**：文件名改回，恢复绿色。
+
+### artifact 定位能力评估（如实）
+
+红色 run 只产出一个 artifact：`nextflow-trace-report`（599,730 bytes ≈ 586 KB，即
+trace.tsv + report.html + timeline.html）。另外两个 artifact **缺失**：
+
+- `nextflow-log`（`.nextflow.log`）——未上传。
+- `failed-task-err`（`work/**/.command.err`）——未上传。
+
+原因：`actions/upload-artifact@v4` 默认 `include-hidden-files: false`，`*` / `**` 不匹配
+点开头文件（`.nextflow.log`、`.command.err`），glob 匹配不到 → `if-no-files-found: ignore`
+使该步骤「绿色」但零产出。
+
+**因此「仅凭 artifact 可独立定位根因」不成立**：trace/report 只能看到 R03 任务级 FAILED，
+而关键错误 `Missing output file 'density_gene_correlation.csv'` 实际来自 **job 日志**
+（`.nextflow.log` / Nextflow stderr），artifact 未包含。本次根因定位实际依赖 job 日志，
+artifact 提供的是 trace/report 层面的辅助信息。
+
+> 修复方向（P5 或后续）：给 `nextflow-log` / `failed-task-err` 两个 upload 步骤加
+> `include-hidden-files: true`，并考虑同时上传 `.command.out`。

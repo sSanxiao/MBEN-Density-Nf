@@ -22,7 +22,7 @@ process R03 {
     path probe_r
 
     output:
-    tuple val(sample), path("density_gene_correlation.csv"), path("r3_summary.csv")
+    tuple val(sample), path("density_gene_correlations.csv"), path("r3_summary.csv")
 
     script:
     """
