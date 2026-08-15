@@ -32,7 +32,7 @@
 
 ## D3：pipeline job（T/W 项）
 
-**状态：待执行**（用户 push 后由 CI 实跑，本机不预跑）。
+**状态：通过**（unit + pipeline 全绿，2026-08-15）。
 
 - `-profile test,docker`，3 样本 / 27 任务。
 - fixture 就地生成在 `/tmp/p1_fixture`，不提交进仓库；`fixture_host == fixture_container`
@@ -48,12 +48,22 @@
 已改为 `grep -vE '^\s*(#|$)' | sed ...` 先滤注释与空行。与 T4 常量漂移同族——
 「代码看着对、只有 CI 真跑才暴露」。
 
-### W 项：耗时（CI 实跑后回填）
+### W 项：耗时（CI 实跑，2026-08-15 绿色 run）
 
 | 项 | 耗时 | 备注 |
 |---|---|---|
-| unit job | （待回填） | D2 |
-| pipeline job（总） | （待回填） | D3 |
-| R 镜像 pull（2.36 GB） | （待回填） | 超过 15 min 才考虑 tiny fixture，否则不做 |
-| Python 镜像 pull | （待回填） | |
-| nextflow run（27 任务） | （待回填） | |
+| unit job | 1m11s | D2 |
+| pipeline job（总） | 2m19s | D3 |
+| R 镜像 pull（2.36 GB） | ~26s | 远低于 15 min 阈值 |
+| Python 镜像 pull | ~12s | |
+| fixture 生成 | ~1s | make_fixture.py --outdir /tmp/p1_fixture |
+| nextflow run（27 任务） | ~1m6s | -profile test,docker |
+
+> 耗时取自 Actions step 时间戳（等价于 `time` 命令的 real）。R 镜像 2.36 GB 在 GitHub
+> runner 直连下拉取仅 ~26s。
+
+**tiny fixture 悬案关闭**：unit + pipeline 合计约 3.5 min，远低于 15 min 阈值——
+**不需要独立 tiny fixture**（关闭 N1 阶段遗留的悬案）。
+
+**Node.js 20 deprecation 警告**：GitHub Actions 平台层面的（actions/checkout@v4 等
+action 内部使用的 Node 版本），与本项目配置无关，不需处理（非待办）。

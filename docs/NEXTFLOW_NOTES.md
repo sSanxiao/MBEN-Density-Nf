@@ -117,8 +117,9 @@ D3 的 pipeline job 用 `tools/make_fixture.py --outdir <绝对路径>` 就地�
 `-v <路径>:<路径>` 的恒等映射。这证明路径耦合是本机 Windows/WSL 环境的产物，而非设计缺陷：
 同一份设计在原生 Linux 上退化为单一路径。
 
-> 注：恒等挂载在 CI 上的实际行为（写权限、挂载路径许可等）尚未实测，D3 跑通后再补
-> 「CI 实测确认」的结论，不在此时以确定语气写入。
+> **CI 实测确认（2026-08-15）**：D3 pipeline job 跑通，`-v /tmp/p1_fixture:/tmp/p1_fixture`
+> 的恒等映射在 CI 环境（runner uid 1001 + 镜像 root）下确实可用——写权限、挂载路径
+> 许可均无问题。此前以「尚未实测」为由暂不写此结论，现已由真跑验证。
 
 ## 7. 子集必须做在 registry 层（Q4(b) fail-fast 的约束）
 

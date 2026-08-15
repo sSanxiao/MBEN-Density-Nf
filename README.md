@@ -1,5 +1,7 @@
 # mben-density-nf
 
+[![CI](https://github.com/sSanxiao/mben-density-nf/actions/workflows/ci.yml/badge.svg)](https://github.com/sSanxiao/mben-density-nf/actions/workflows/ci.yml)
+
 Nextflow workflow for the cell-density-coupled gene signature pipeline
 (MSc thesis, spatial transcriptomics / medulloblastoma).
 
