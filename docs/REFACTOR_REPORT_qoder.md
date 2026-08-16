@@ -2,7 +2,7 @@
 
 > **Branch**: `refactor/p1-qoder`
 > **Date**: 2026-08-12
-> **Verification level**: **L3** (18/18 infrastructure tests, A/D/E/F PASS, B/C FAIL root-caused to known Observations)
+> **Verification level**: **L3** (18/18 infrastructure tests, A/D/E/F PASS, B/C FAIL root-caused to known Observations — **final server result: A–F 6/6 PASS, see §2 UPDATE**)
 
 ---
 
@@ -36,6 +36,17 @@ No new dependencies were introduced. All old invocation patterns remain executab
 | **F**: no new dependencies | **PASS** | `git diff` confirms zero new `install.packages()` / `library()` / `pip install` |
 
 **PASS: 4 / FAIL: 2 (both caused by known Observation 17, not by refactoring defects).**
+
+> **UPDATE (after server re-verification)**: the table above, and the
+> B/C = FAIL / "Stage failures: 4 total" rows in §6 below, reflect the **S7 local
+> result**. After the S6 correction round (`verify_equivalence.sh` Windows backslash-path
+> fix, Obs 17 wording correction, R stage switched to a subset registry excluding Donor2),
+> `run_server_verification.sh` was re-run on the target environment (CentOS 7 / R 4.2.0 /
+> Seurat 5.2.1). Final result: **PASS: 6 | SKIP: 0 | FAIL: 0**, Stage Failures: 1
+> (P1c only, Obs 16 — an explicit exclusion). B and C turned from FAIL to PASS because
+> the R-stage subset registry (excluding Donor2) removed the Obs 17 missing-file failures;
+> the subset registry is a verification configuration, not a code change.
+> **A–F final state is therefore 6/6 PASS** (R stage excludes Donor2 as recorded).
 
 ---
 
