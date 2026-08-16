@@ -111,7 +111,7 @@ artifact 提供的是 trace/report 层面的辅助信息。
 | S | 镜像推送 GHCR | 通过（两镜像推送 + CI pull 到；Python pull 由 D3 覆盖） |
 | T | CI 跑通 pipeline | 通过（27 任务全完成） |
 | U | CI 跑通 unit | 通过（CI 内 12 passed + 0 failed + 6 SKIP；6 个 Seurat 依赖测试由 D3 容器覆盖） |
-| V | badge 绿且可点开 | 待绿跑（badge 已加，回退 push 后转绿即通过） |
+| V | badge 绿且可点开 | 通过（badge 绿 + 可点开，https://github.com/sSanxiao/mben-density-nf） |
 | W | 运行时长记录 | 通过（耗时表 + tiny fixture 关闭） |
 | X | 失败可见性（反向验证） | 部分（变红已证；artifact 独立定位未成立，待修复后重验） |
 
