@@ -27,15 +27,15 @@ nextflow run main.nf -profile standard      # 全量 / 无容器（服务器）
 
 ## 可复现性是怎么保证的
 
-**(a) 环境锁定。** R 依赖由 `env/renv.lock` 全量锁定（145 个包），Python 依赖由
-`env/requirements.txt` 锁定（7 个包）；镜像基底钉死版本标签与 RSPM 快照日期，镜像内含
-`build_info.txt` 与 LABEL 溯源。镜像由 CI 构建而非本机——「在我电脑上 build 的」不算可复现。
+**(a) 环境锁定。** R 依赖由 `env/renv.lock` 全量锁定（145 个包，JSON 解析 `env/renv.lock` 的 `Packages` 键计数，非 grep 字符串匹配），Python 依赖由
+`env/requirements.txt` 锁定（7 个包）；镜像基底钉死版本标签与 RSPM 快照日期，两镜像内置
+LABEL 溯源（R 镜像另写 `build_info.txt`）。镜像由 CI 构建而非本机——「在我电脑上 build 的」不算可复现。
 
 **(b) 两级等价标准。** 这是本流程最有分量的判断——区分位等价与浮点等价，并分别定义标准：
 
 | 场景 | 标准 | 结果 |
 |---|---|---|
-| 同机重构前后 | 内容指纹**逐字节相同** | 服务器验收 A–F **6/6 通过** |
+| 同机重构前后 | 内容指纹**逐字节相同** | P1 验收 A–F **4/6 通过**（B/C 失败均因 Obs 17 缺文件，非字节差异） |
 | Nextflow vs 直接调用（同容器） | 逐值相同 | **63 文件 exact match，numeric delta = 0** |
 | 容器 vs 原生（跨 BLAS） | 数值容差（\|Δρ\| < 1e-6；计数精确；基因集合与分类标签相同） | 基因集合与标签完全一致 |
 
@@ -71,10 +71,29 @@ CI 变红。该缺陷是**沉默型**——R 脚本 `exit status: 0`、正常打
 
 ## 已知限制
 
-（E2 补齐）
+- **服务器只能用 `standard` profile**：服务器 Docker 1.13.1 + 用户无 daemon 权限 + 无
+  apptainer，跑不了容器。这是真实 HPC 约束，也正是流程同时支持无容器与容器两种 profile
+  的原因——写成设计理由，不是道歉。
+- **Python 3.7 已 EOL，是有意的 reproduction target**：复现论文的前提是复现当时的环境；
+  用现代版本重跑再声称「复现了论文」是更严重的问题。
+- **`hdf5r` 不在 `renv.lock`**：它是 Seurat 的 Suggests（`snapshot()` 未捕获），版本仅由
+  RSPM 快照日期间接固定——已知的可复现性缺口。
+- **R05–R09 未纳入 Nextflow**；fixture 的 Donor2 因被测代码的潜伏缺陷在 R 阶段被排除；
+  P1c 在单 dataset fixture 上必然报错。
+- **artifact 可定位性待修复后重验**：当前根因定位依赖 job 日志，artifact 未含
+  `.nextflow.log` / `.command.err`（见上文能力边界）。
+- **`row_order_md5` 未实现**：指纹按 key 排序，物理行序对指纹透明；而 R03 输出按相关系数
+  绝对值降序排列，该顺序有意义但当前不被检查。
 
 ## 仓库结构 / 文档索引
 
-（E2 补齐）
+| 文档 | 回答什么问题 |
+|---|---|
+| `docs/NEXTFLOW_NOTES.md` | P3 设计说明：三个 profile 取舍、路径耦合、`-resume`、工程判断（最有价值的单份） |
+| `docs/P2_CONTAINER_VERIFICATION.md` | 容器 vs 原生数值等价（指纹、容差、C5/C6 结论） |
+| `docs/P4_REPORT.md` | CI 六项验收（S–X）+ 五条 CI 捕获缺陷 |
+| `docs/REFACTOR_REPORT_qoder.md` | P1 汇总 |
+| `docs/IO_CONTRACT_CHECKLIST.md`、`docs/S5a_REPORT.md`、`docs/S5b_REPORT.md` | P1 过程记录 |
+| `env/ENVIRONMENT.md` | 工具与依赖版本（R/Python 全量清单） |
 
 原始论文代码存档：https://github.com/sSanxiao/Thesis_project
