@@ -275,7 +275,7 @@
 4. **需处理 4**：fixture 增加 `Fixture_Mouse/MouseB`（`unknown` h5 布局），P1b 双布局分支已实测覆盖（见 §10 fixture 备注）。
 5. **观察 5**：确认 P1b 写出 int32（P1b_data_loading.py:235），`fingerprint_h5` 保留 `str(int(v))` 并加非整型 dtype 防御分支（改走 `fmt_num`）。
 
-**fixture 定稿**：2 dataset × 2 样本（Fixture_Human: Donor1/Donor2；Fixture_Mouse: MouseA/MouseB），2000 细胞 × 200 features，固定种子，两次生成字节级一致（registry path 前缀除外）。回归基线：`test_infrastructure.py` 6/6 通过，`fingerprint.R` parse OK。
+**fixture 定稿**：2 dataset × 2 样本（Fixture_Human: Donor1/Donor2；Fixture_Mouse: MouseA/MouseB），2000 细胞 × 200 features，固定种子，两次生成字节级一致（registry path 前缀除外）。回归基线：`test_infrastructure.py` 6/6 通过（该数字为 fixture 定稿时的用例数；测试套件后续扩充至 18 条，见 docs/S5b_REPORT.md），`fingerprint.R` parse OK。
 
 **S3 收尾轮（补 1–3）**：
 1. **补 1（.rds/.h5 指纹进测试套件）**：新增 T9（.rds）、T10（.h5）。T9 用同一段构造代码独立运行两次产出两个 Seurat 对象（`@commands$time.stamp` 必然不同），断言指纹逐字一致；反向用例改 counts 层一个值必须使指纹改变。T10 用同一 fixture 代码分别生成 matrix / unknown 两种布局各两次，断言指纹一致。均注明 falsifies。

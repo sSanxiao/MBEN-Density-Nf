@@ -97,3 +97,16 @@ CI 变红。该缺陷是**沉默型**——R 脚本 `exit status: 0`、正常打
 | `env/ENVIRONMENT.md` | 工具与依赖版本（R/Python 全量清单） |
 
 原始论文代码存档：https://github.com/sSanxiao/Thesis_project
+
+## 收尾清单（挂起事项与阻碍）
+
+这份清单是「知道自己的能力边界」的证据——把遗留写清楚，比假装没有更可信。
+
+| # | 事项 | 类型 | 阻碍 / 说明 |
+|---|---|---|---|
+| 1 | artifact `include-hidden-files` 修复 + 重做一次 X 项 | 增强项 | 修复 `ci.yml` 的 artifact 上传：`.nextflow.log` 用 `if-no-files-found: error`（每次 run 后必然存在）；`.command.err`/`.command.out` 用 `include-hidden-files: true` + `if-no-files-found: warn`。改后需重跑一次 X 项，证明 artifact 真能独立定位根因（否则修复本身未验证）。 |
+| 2 | K 项：服务器同机容器对照 | 阻塞项 | 服务器无可用容器运行时（Docker 1.13.1 无 daemon 权限、无 singularity/apptainer），需管理员安装 apptainer（或加 docker 组 / `DOCKER_BUILDKIT=0` + save→scp→load）。 |
+| 3 | `row_order_md5` 指纹增强 | 增强项 | R03 输出按 `|rho_knn_main|` 降序排列，该顺序有意义但当前指纹按 key 排序、行序透明，不被检查。 |
+| 4 | R01–R09 补 `set.seed(42)` + R02 `seed.use` 显式化 | 增强项 | P0 遗留，需在论文代码层决策（涉及被测脚本），由用户手动完成。注：C6 已证 set.seed 解决不了 R02 n_clusters 的数值差异（那来自 BLAS 被确定性放大）。 |
+| 5 | test A 中 Mouse 侧 R03/R04 重算未定位 | 增强项 | R02 已 CACHED、输入未变却重算，已在 N 项证据如实标注「未定位」。建议从干净 work dir 重跑基线后再单独跑 test A，确认 Mouse 侧是否全 CACHED。 |
+| 6 | docker profile 的 `-resume` 不稳定 | 增强项 | 容器化任务哈希逐 run 变化（与 write_subset mtime 无关）。已判定不值得排查：服务器只能跑 standard，docker 面向 CI/展示，CI 每次干净环境本就不 resume。 |
