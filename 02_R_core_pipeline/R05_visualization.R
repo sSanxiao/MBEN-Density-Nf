@@ -27,6 +27,7 @@ suppressPackageStartupMessages({
 }, error = function(e) ".")
 .args_path <- file.path(dirname(.script_dir), "config", "args.R")
 if (file.exists(.args_path)) source(.args_path) else stop("config/args.R not found: ", .args_path)
+set.seed(42)
 
 .args <- parse_args(defaults = list(sample = NULL, registry = NULL,
                                      indir = NULL, outdir = NULL))
